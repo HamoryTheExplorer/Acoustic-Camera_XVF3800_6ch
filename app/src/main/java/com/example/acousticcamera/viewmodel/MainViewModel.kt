@@ -35,4 +35,11 @@ class MainViewModel : ViewModel() {
             _statusText.value = "分析完成！数据长度: ${fftResult.size}"
         }
     }
+
+    // 新增：重置功能
+    fun resetAnalysis() {
+        // 设为 null，UI 层会自动将其转换为全 0 的数组显示空坐标轴
+        _spectrumData.value = null
+        _statusText.value = "已重置，点击按钮开始分析"
+    }
 }

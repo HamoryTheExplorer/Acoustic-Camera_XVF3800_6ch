@@ -2,6 +2,7 @@ package com.example.acousticcamera.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,20 +44,18 @@ fun MainScreen(viewModel: MainViewModel = androidx.lifecycle.viewmodel.compose.v
             data = displayData,
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f) // 核心代码：让图表撑满剩余空间
-                .padding(top = 16.dp, start = 16.dp, end = 16.dp)
+                .weight(1f) // 让图表撑满剩余空间
+                .padding(top = 32.dp, start = 16.dp, end = 16.dp) //顶部 32.dp 不占用导航栏空间
         )
 
         // --- 下半部分：控制区 ---
-        // 这里没有设置 weight，所以它只占用它需要的空间
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp), // 给外围多留点白，好看点
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // 状态文字
             Text(
                 text = status,
                 style = MaterialTheme.typography.bodyMedium,
@@ -63,18 +63,33 @@ fun MainScreen(viewModel: MainViewModel = androidx.lifecycle.viewmodel.compose.v
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // 大按钮
-            Button(
-                onClick = { viewModel.runAnalysis() },
-                modifier = Modifier
-                    .fillMaxWidth(0.8f) // 按钮宽度占屏幕宽度的 80%
-                    .height(56.dp)      // 按钮高一点，方便按
+            // --- 修改开始: Row 并排两个按钮 ---
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                // 两个按钮之间留出 16dp 的间距
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = "运行仿真与分析",
-                    style = MaterialTheme.typography.titleMedium
-                )
+                // 左边：重置按钮 (次要操作，用空心样式)
+                OutlinedButton(
+                    onClick = { viewModel.resetAnalysis() },
+                    modifier = Modifier
+                        .weight(1f) // 占宽度的 50%
+                        .height(56.dp)
+                ) {
+                    Text("重置")
+                }
+
+                // 右边：运行按钮 (主要操作，用实心样式)
+                Button(
+                    onClick = { viewModel.runAnalysis() },
+                    modifier = Modifier
+                        .weight(1f) // 占宽度的 50%
+                        .height(56.dp)
+                ) {
+                    Text("运行分析")
+                }
             }
+            // --- 修改结束 ---
         }
     }
 }
