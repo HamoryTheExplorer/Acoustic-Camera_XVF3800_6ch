@@ -55,6 +55,7 @@ class MainViewModel : ViewModel() {
     fun resetAnalysis() {
         // 设为 null，UI 层会自动将其转换为全 0 的数组显示空坐标轴
         _spectrumData.value = null
+        _heatmapData.value = null // 热力图清空
         _statusText.value = "已重置，点击按钮开始分析"
     }
 }

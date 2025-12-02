@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -24,7 +28,10 @@ import androidx.compose.ui.unit.dp
 import com.example.acousticcamera.viewmodel.MainViewModel
 
 @Composable
-fun MainScreen(viewModel: MainViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+fun MainScreen(
+    onBackClick: () -> Unit, // <--- 新增参数：接收返回指令
+    viewModel: MainViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
     val status by viewModel.statusText.collectAsState()
     val spectrum by viewModel.spectrumData.collectAsState()
 
@@ -34,18 +41,43 @@ fun MainScreen(viewModel: MainViewModel = androidx.lifecycle.viewmodel.compose.v
         spectrum ?: FloatArray(4096) { 0f }
     }
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .navigationBarsPadding() // 避免被底部小白条遮挡
+            .padding(top = 16.dp) // 给顶部状态栏留点空隙
     ) {
+        // --- 顶部标题栏 ---
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 返回按钮
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "返回",
+                    tint = MaterialTheme.colorScheme.onSurface // 自动适配深色/浅色模式
+                )
+            }
+
+            // 标题
+            Text(
+                text = "信号分析",
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+
         // --- 上半部分：频谱图 ---
         SpectrumView(
             data = displayData,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f) // 让图表撑满剩余空间
-                .padding(top = 32.dp, start = 16.dp, end = 16.dp) //顶部 32.dp 不占用导航栏空间
+                .padding(start = 16.dp, end = 16.dp)
         )
 
         // --- 下半部分：控制区 ---
@@ -63,7 +95,25 @@ fun MainScreen(viewModel: MainViewModel = androidx.lifecycle.viewmodel.compose.v
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // --- 修改开始: Row 并排两个按钮 ---
+            // --- 显示热力图按钮 ---
+            // 放在操作按钮上方，作为查看结果的入口
+            Button(
+                onClick = {
+                    // TODO: 后面我们会在这里实现弹出热力图的逻辑
+                    // 暂时先留空，或者打个 Log
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                // 只有当有数据时(spectrum != null)才允许点击，体验更好
+                enabled = spectrum != null
+            ) {
+                Text("显示声压热力图 (Heatmap)")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp)) // 增加一点间距
+
+            // --- 两个操作按钮 ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 // 两个按钮之间留出 16dp 的间距
