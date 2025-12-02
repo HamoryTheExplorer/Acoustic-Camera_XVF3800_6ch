@@ -56,7 +56,8 @@ fun SpectrumView(
             // --- 2. 数据准备 ---
             // 我们只显示前 1/4 的频谱 (通常声音主要集中在低频)
             // 频率范围: 0 ~ SampleRate/4 (例如 44100/4 = 11025Hz)
-            val displayDataSize = data.size / 4
+            // 修正：取 data 的一半，也就是总频段的 1/4 (0~11025Hz)
+            val displayDataSize = data.size / 2
             val maxFreq = sampleRate / 4
 
             // 找出最大值及其索引 (用于绘制峰值)
