@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.acousticcamera.algorithm.FftUtils
 import com.example.acousticcamera.data.AudioRepository
+import com.example.acousticcamera.data.Point3D
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,21 +19,26 @@ class MainViewModel : ViewModel() {
     private val _statusText = MutableStateFlow("点击按钮开始分析")
     val statusText = _statusText.asStateFlow()
 
+    // ...
     fun runAnalysis() {
         viewModelScope.launch(Dispatchers.Default) {
-            _statusText.value = "正在生成仿真数据..."
+            _statusText.value = "正在生成 64 通道仿真数据..."
 
-            // 1. 获取数据
-            val audioData = AudioRepository.generateSimulationData()
+            // 设定一个明显的声源位置 (偏右侧，这样左边和右边的麦克风延迟差大)
+            val sourcePos = Point3D(1.0f, 0.0f, 1.0f)
+            val audioData = AudioRepository.generateSimulationData(sourcePos)
 
-            _statusText.value = "正在进行 FFT 计算..."
-            // 2. 取第一个麦克风的数据做 FFT
+            _statusText.value = "数据生成完毕，正在计算 FFT..."
+
+            // 这里我们只显示第 0 号麦克风 (左上角) 的频谱
+            // 真正的声学相机后面会用到所有通道的数据
             val mic0Data = audioData.data[0]
             val fftResult = FftUtils.computeMagnitudeSpectrum(mic0Data)
 
-            // 3. 更新 UI
             _spectrumData.value = fftResult
-            _statusText.value = "分析完成！数据长度: ${fftResult.size}"
+
+            // 更新提示文字，告诉自己这是多少个通道的数据
+            _statusText.value = "通道数:${audioData.channels}  声源模拟位置:(${sourcePos.x}, ${sourcePos.y})"
         }
     }
 
