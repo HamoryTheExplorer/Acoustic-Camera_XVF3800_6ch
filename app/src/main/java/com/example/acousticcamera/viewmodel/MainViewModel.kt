@@ -38,7 +38,7 @@ class MainViewModel : ViewModel() {
             _spectrumData.value = fftResult
 
             // --- 新增：DAS 计算步骤 ---
-            _statusText.value = "3. 执行 DAS 波束形成 (计算量大)..."
+            _statusText.value = "3. 执行 DAS 波束形成..."
 
             val startTime = System.currentTimeMillis()
             // 调用算法

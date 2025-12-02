@@ -1,5 +1,6 @@
 package com.example.acousticcamera.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +26,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import com.example.acousticcamera.viewmodel.MainViewModel
 
 @Composable
@@ -34,6 +42,10 @@ fun MainScreen(
 ) {
     val status by viewModel.statusText.collectAsState()
     val spectrum by viewModel.spectrumData.collectAsState()
+
+    // 热力图状态
+    val heatmapData by viewModel.heatmapData.collectAsState() // 拿到热力图数据
+    var showHeatmapDialog by remember { mutableStateOf(false) } // 控制弹窗显示的 State
 
     // 关键逻辑：如果有真实数据，就用真实的；如果没有(null)，就造一个全为0的假数组。
     // 长度设为 4096 是为了让 Grid 计算时分母不为0，保证坐标轴能画出来。
@@ -99,13 +111,13 @@ fun MainScreen(
             // 放在操作按钮上方，作为查看结果的入口
             Button(
                 onClick = {
-                    // TODO: 后面我们会在这里实现弹出热力图的逻辑
-                    // 暂时先留空，或者打个 Log
+                    // 点击显示弹窗
+                    showHeatmapDialog = true
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
-                // 只有当有数据时(spectrum != null)才允许点击，体验更好
+                // 只有当有数据时(spectrum != null)才允许点击
                 enabled = spectrum != null
             ) {
                 Text("显示声压热力图 (Heatmap)")
@@ -139,7 +151,40 @@ fun MainScreen(
                     Text("运行分析")
                 }
             }
-            // --- 修改结束 ---
         }
     }
+
+    // --- 弹窗逻辑  ---
+    if (showHeatmapDialog && heatmapData != null) {
+        Dialog(onDismissRequest = { showHeatmapDialog = false }) {
+            // 弹窗内容
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White, shape = RoundedCornerShape(16.dp))
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "声源定位结果",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.Black,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // 放置我们的热力图组件
+                HeatmapView(
+                    heatmapData = heatmapData!!,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(onClick = { showHeatmapDialog = false }) {
+                    Text("关闭")
+                }
+            }
+        }
+    }
+
 }
