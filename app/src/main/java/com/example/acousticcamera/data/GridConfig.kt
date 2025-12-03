@@ -9,7 +9,7 @@ object GridConfig {
     // 定义热力图的分辨率 (50x50 像素)
     // 越高越清晰，但计算量是平方级增长
     const val GRID_SIZE = 50
-    const val PLANE_SIZE = 2.0f // 扫描平面的物理尺寸 (比如 2米 x 2米)
+    const val PLANE_SIZE = 2.0f // 扫描平面的物理尺寸 (2米 x 2米)
     const val Z_DISTANCE = 1.0f // 扫描平面距离麦克风阵列的距离 (Z轴深度)
 
     // 获取第 (x, y) 个格子的三维坐标

@@ -23,7 +23,7 @@ object AudioRepository {
         val channelDataList = ArrayList<FloatArray>()
 
         val speedOfSound = 340.0 // 声速 m/s
-        val frequency = 2000.0   // 频率 2000Hz (波长约17cm)
+        val frequency = 4000.0   // 频率 4000Hz
 
         // 对每个麦克风进行循环
         for (mic in mics) {
@@ -43,8 +43,8 @@ object AudioRepository {
                 // 这里的 (t - delaySeconds) 就是相移的关键！
                 val timeWithDelay = t - delaySeconds
 
-                // 简单的白噪声 (模拟底噪)
-                val noise = (Math.random() - 0.5) * 0.02
+                // 白噪声 (模拟底噪)
+                val noise = (Math.random() - 0.5) * 0.005
 
                 // 生成信号
                 val signal = sin(2 * PI * frequency * timeWithDelay) + noise

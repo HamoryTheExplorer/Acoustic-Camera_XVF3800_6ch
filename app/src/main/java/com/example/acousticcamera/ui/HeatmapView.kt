@@ -36,13 +36,25 @@ fun HeatmapView(
     heatmapData: FloatArray,
     modifier: Modifier = Modifier
 ) {
-    // 1. 生成热力图 Bitmap (逻辑不变)
+    // 找出 dB 范围
+    val maxDB = remember(heatmapData) { heatmapData.maxOrNull() ?: 60f }
+    // 2. 设定动态显示范围 (Dynamic Range)
+    // 只有比最大值弱 15dB 以内的信号才显示颜色，其他的全部置为背景蓝
+    val dynamicRange = 15f
+    val thresholdDB = maxDB - dynamicRange
+
+    // 生成热力图 Bitmap
     val imageBitmap = remember(heatmapData) {
         val size = GridConfig.GRID_SIZE
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val pixels = IntArray(size * size)
+
         for (i in heatmapData.indices) {
-            pixels[i] = ColorUtils.valueToColor(heatmapData[i])
+            val db = heatmapData[i]
+
+            var normalized = (db - thresholdDB) / dynamicRange
+            normalized = normalized.coerceIn(0f, 1f) // 归一化：限制在 0~1 之间
+            pixels[i] = ColorUtils.valueToColor(normalized)
         }
         bitmap.setPixels(pixels, 0, size, 0, 0, size, size)
         bitmap.asImageBitmap()
@@ -143,13 +155,14 @@ fun HeatmapView(
                 }
             }
 
-//            // --- 绘制左上角提示 ---
-//            drawText(
-//                textMeasurer = textMeasurer,
-//                text = "Scan Plane: 2m x 2m (Z=1m)",
-//                style = TextStyle(color = Color.Yellow, fontSize = 10.sp),
-//                topLeft = Offset(10f, 10f)
-//            )
+            // 在左上角或者右上角显示 Max dB
+            val infoText = "Max: %.1f dB\nMin: %.1f dB".format(maxDB, thresholdDB)
+            drawText(
+                textMeasurer = textMeasurer,
+                text = infoText,
+                style = TextStyle(color = Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                topLeft = Offset(10f, 30f) // 放在 "Scan Plane" 文字下面
+            )
         }
     }
 }
