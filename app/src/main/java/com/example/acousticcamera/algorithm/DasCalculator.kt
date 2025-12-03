@@ -6,6 +6,10 @@ import com.example.acousticcamera.data.MicArrayConfig
 import com.example.acousticcamera.data.Point3D
 import org.jtransforms.fft.FloatFFT_1D
 import kotlin.math.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.withContext
 
 /**
  * 频域 DAS (Frequency Domain DAS) 实现
@@ -23,174 +27,171 @@ object DasCalculator {
     private const val SPEED_OF_SOUND = 340.0
     private const val FREQ_MIN = 2000.0
     private const val FREQ_MAX = 5000.0
-
-    // 关键优化：只分析能量最强的 8 个频率
-    // 这能显著减少计算量和内存占用，且几乎不影响定位精度
+    // 只分析能量最强的 8 个频率
+    // 显著减少计算量和内存占用，且几乎不影响定位精度
     private const val TOP_N_FREQS = 8
 
     /**
-     * 计算单个 Steering Vector 元素
-     * 用于实时计算，避免存储巨大的 3D 数组
+     * 计算相位偏移因子 (Unit Steering Vector element)
+     * 优化：去掉了 amplitude (rMic/rCenter) 的除法计算，只保留相位，计算更快且对热力图影响极小
      */
-    private fun computeSteeringValue(
-        freq: Double,
+    private fun computePhaseFactor(
+        omega: Double,
         mic: Point3D,
         gridPoint: Point3D
     ): Complex {
-        val omega = 2 * PI * freq
-        val center = Point3D(0f, 0f, 0f) // 假设阵列中心
+        // 假设阵列中心
+        val center = Point3D(0f, 0f, 0f)
 
         // 距离计算
         val rCenter = MicArrayConfig.distance(gridPoint, center).toDouble()
         val rMic = MicArrayConfig.distance(gridPoint, mic).toDouble()
 
-        // 相位延迟
+        // 核心：计算相位差
+        // 这里的符号取决于你的 FFT 实现和延迟定义，通常是 exp(-j * w * delta_t)
         val distDiff = rMic - rCenter
         val phase = -omega * distDiff / SPEED_OF_SOUND
 
-        // 幅度补偿 (rMic / rCenter)
-        val amplitude = rMic / rCenter
-
-        // exp(j * phase) * amplitude
-        return expIj(phase) * amplitude
+        // 欧拉公式 exp(jx) = cos(x) + j*sin(x)
+        return Complex(cos(phase), sin(phase))
     }
 
     /**
      * 主入口
+     * 这里加上了 suspend，因为我们要用协程并行计算
      */
-    fun computeHeatmap(audioData: AudioData): FloatArray {
+    suspend fun computeHeatmap(audioData: AudioData): FloatArray = withContext(Dispatchers.Default) {
         val nMics = audioData.channels
         val nSamples = audioData.data[0].size
         val sampleRate = audioData.sampleRate
         val gridSize = GridConfig.GRID_SIZE
         val nGrid = gridSize * gridSize
 
-        // --- 1. FFT 计算 ---
-        // [Mic][FreqIndex] -> Complex
+        // --- 1. FFT 计算 (保持不变) ---
         val fftData = Array(nMics) { ComplexArray(nSamples / 2) }
         val fftLib = FloatFFT_1D(nSamples.toLong())
-
-        // 临时 buffer
         val buffer = FloatArray(nSamples * 2)
 
         for (m in 0 until nMics) {
-            // 填入数据
             for (i in 0 until nSamples) {
                 buffer[i * 2] = audioData.data[m][i]
                 buffer[i * 2 + 1] = 0f
             }
             fftLib.complexForward(buffer)
-
-            // 只取前一半 (Nyquist)
             for (i in 0 until nSamples / 2) {
                 fftData[m][i] = Complex(buffer[i * 2].toDouble(), buffer[i * 2 + 1].toDouble())
             }
         }
 
-        // --- 2. 频率筛选 (Top-N Selection) ---
-        // 找出在 FREQ_MIN ~ FREQ_MAX 范围内，所有麦克风总能量最大的那些频率索引
+        // --- 2. 频率筛选 (Top-N) (保持不变) ---
         val validIndices = ArrayList<Int>()
         for (i in 0 until nSamples / 2) {
             val f = i * sampleRate.toDouble() / nSamples
-            if (f >= FREQ_MIN && f <= FREQ_MAX) {
+            if (f in FREQ_MIN..FREQ_MAX) {
                 validIndices.add(i)
             }
         }
+        if (validIndices.isEmpty()) return@withContext FloatArray(nGrid)
 
-        if (validIndices.isEmpty()) return FloatArray(nGrid)
-
-        // 排序：按该频率下所有麦克风的能量之和降序排列
         val topIndices = validIndices.sortedByDescending { idx ->
             var sumEnergy = 0.0
-            for (m in 0 until nMics) {
-                sumEnergy += fftData[m][idx].absSq()
-            }
+            for (m in 0 until nMics) sumEnergy += fftData[m][idx].absSq()
             sumEnergy
-        }.take(TOP_N_FREQS) // 只取前 8 个
+        }.take(TOP_N_FREQS)
 
         val nSelFreqs = topIndices.size
 
-        // --- 3. 计算 CSM (仅针对 Top-N 频率) ---
-        // 这样 csm 数组很小: [Mic][Mic][8]
-        val csm = Array(nMics) { Array(nMics) { Array(nSelFreqs) { Complex(0.0, 0.0) } } }
-        val selectedFreqs = DoubleArray(nSelFreqs)
-
-        for ((k, fIdx) in topIndices.withIndex()) {
-            selectedFreqs[k] = fIdx * sampleRate.toDouble() / nSamples
-            for (m1 in 0 until nMics) {
-                val val1 = fftData[m1][fIdx]
-                for (m2 in 0 until nMics) {
-                    val val2 = fftData[m2][fIdx]
-                    // x * x^H
-                    csm[m1][m2][k] = val1 * val2.conj()
-                }
-            }
+        // --- 3. 提取选中频率的信号向量 (优化点：不做 CSM 矩阵，只保留向量) ---
+        // signalVectors[FreqIndex][MicIndex]
+        val signalVectors = Array(nSelFreqs) { k ->
+            val fIdx = topIndices[k]
+            Array(nMics) { m -> fftData[m][fIdx] }
         }
 
-        // --- 4. Beamforming (内存安全版) ---
-        // 我们不预先计算巨大的 W 数组，而是在循环中实时计算 Steering Vector
-        // 虽然稍微增加了一点 CPU 负担，但彻底解决了 OOM 问题
+        // 预计算角频率
+        val omegas = DoubleArray(nSelFreqs) { k ->
+            2 * PI * (topIndices[k] * sampleRate.toDouble() / nSamples)
+        }
 
-        val powerMap = DoubleArray(nGrid) { 0.0 }
+        // --- 4. 并行波束形成 (Parallel Beamforming) ---
+        // 最大的优化点：将 2500 个点切分成多块，利用 CPU 多核并行计算
         val mics = MicArrayConfig.mics
 
-        // 预先生成扫描点坐标
-        val gridPoints = Array(nGrid) { i ->
-            val gy = i / gridSize
-            val gx = i % gridSize
-            GridConfig.getPoint3D(gx, gy)
-        }
+        // 我们不一次循环 2500 次，而是使用 map + async 并行
+        // 将 Grid 坐标预先生成
+        val allGridIndices = (0 until nGrid).toList()
 
-        // 对每个网格点
-        for (g in 0 until nGrid) {
-            val gp = gridPoints[g]
+        // 分块处理，根据 CPU 核心数决定块的数量
+        val numChunks = Runtime.getRuntime().availableProcessors() * 2
+        val chunkSize = (nGrid + numChunks - 1) / numChunks
 
-            // 对每个选中的频率
-            for (k in 0 until nSelFreqs) {
-                val freq = selectedFreqs[k]
+        val deferredResults = allGridIndices.chunked(chunkSize).map { chunkIndices ->
+            async {
+                val chunkResults = DoubleArray(chunkIndices.size)
 
-                // --- 核心优化：在内层循环计算 B = w^H * CSM * w ---
-                // 展开公式: Sum_m1 Sum_m2 ( w[m1]^* * CSM[m1][m2] * w[m2] )
-                // 我们可以先算 tempVector = CSM * w
-                // 然后算 w^H * tempVector
-                // 这样复杂度从 O(M^2) 降到 O(M^2) 但省去了存储 W 的空间
+                // 在这个线程块里处理一部分 Grid Point
+                for ((localIndex, gIdx) in chunkIndices.withIndex()) {
+                    val gy = gIdx / gridSize
+                    val gx = gIdx % gridSize
+                    val gp = GridConfig.getPoint3D(gx, gy)
 
-                // 1. 临时计算该点的 Steering Vector (长度为 nMics)
-                val wVec = Array(nMics) { m ->
-                    computeSteeringValue(freq, mics[m], gp)
-                }
+                    var totalEnergy = 0.0
 
-                // 2. 矩阵运算: w^H * CSM * w
-                var sum = Complex(0.0, 0.0)
+                    // 对每个频率累加能量
+                    for (k in 0 until nSelFreqs) {
+                        val omega = omegas[k]
+                        val signals = signalVectors[k] // 当前频率下的麦克风信号向量
 
-                for (m1 in 0 until nMics) {
-                    for (m2 in 0 until nMics) {
-                        // w[m1].conj * CSM[m1][m2] * w[m2]
-                        val term = wVec[m1].conj() * csm[m1][m2][k] * wVec[m2]
-                        sum += term
+                        // 核心数学优化：
+                        // 原算法：w^H * CSM * w (复杂度 64^2 = 4096)
+                        // 新算法：|w^H * x|^2 (复杂度 64)
+                        // 解释：如果是一次快拍(Snapshot)，两者数学上完全等价，但后者快 64 倍
+
+                        var beamSum = Complex(0.0, 0.0)
+
+                        for (m in 0 until nMics) {
+                            // 计算相位补偿 (Steering Vector element)
+                            // 注意：这里用 conjugate (共轭) 还是原值，取决于定义
+                            // DAS原理：补偿相位延迟 -> 乘以 exp(+jw*delta) 抵消 exp(-jw*delta)
+                            // 这里 computePhaseFactor 计算的是 exp(phase)，我们需要它的共轭来抵消信号里的延迟
+                            // 或者简单理解：信号延后了，我们要把相角"减"回来
+
+                            val w = computePhaseFactor(omega, mics[m], gp)
+
+                            // Beamforming Sum = Sum( w[m].conj * signal[m] )
+                            // 相当于把每个麦克风的信号"对齐"后相加
+                            beamSum += w.conj() * signals[m]
+                        }
+
+                        // 能量 = 幅度的平方
+                        totalEnergy += beamSum.absSq()
                     }
+                    chunkResults[localIndex] = totalEnergy
                 }
-
-                powerMap[g] += sum.re
+                chunkResults
             }
         }
 
-        // --- 5. 转 dB ---
+        // 等待所有线程完成并合并结果
+        val powerMap = DoubleArray(nGrid)
+        var offset = 0
+        deferredResults.awaitAll().forEach { chunkRes ->
+            System.arraycopy(chunkRes, 0, powerMap, offset, chunkRes.size)
+            offset += chunkRes.size
+        }
+
+        // --- 5. 转 dB (保持不变) ---
         val splMap = FloatArray(nGrid)
         val epsilon = 1e-12
-
-        // 简单归一化 dB
         for (i in 0 until nGrid) {
-            // 防止负数
             val p = max(powerMap[i], epsilon)
-            // 20 * log10(sqrt(p)) = 10 * log10(p)
             splMap[i] = (10 * log10(p)).toFloat()
         }
 
-        return splMap
+        return@withContext splMap
     }
 
-    // 辅助类保持不变
+    // 辅助类
     class ComplexArray(size: Int) {
         val data = Array(size) { Complex(0.0, 0.0) }
         operator fun set(i: Int, value: Complex) { data[i] = value }
