@@ -39,13 +39,13 @@ class MainActivity : ComponentActivity() {
                             onEnterClick = { currentScreen = "Analysis" }
                         )
                     } else {
-                        // --- 进入 Analysis 界面 ---
-                        // 1. 物理返回键：按下返回键就去 Home
+                        // --- Analysis 界面 ---
+                        // 处理物理返回键
                         BackHandler(enabled = true) {
                             currentScreen = "Home"
                         }
 
-                        // 2. 显示主界面，点击左上角箭头返回Home
+                        // 显示主功能页
                         MainScreen(
                             onBackClick = { currentScreen = "Home" }
                         )
