@@ -2,7 +2,7 @@ package com.example.acousticcamera.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.acousticcamera.algorithm.DasCalculator
+import com.example.acousticcamera.algorithm.DasCalculatorTurbo
 import com.example.acousticcamera.algorithm.FftUtils
 import com.example.acousticcamera.data.AudioRepository
 import com.example.acousticcamera.data.Point3D
@@ -70,7 +70,7 @@ class MainViewModel : ViewModel() {
                     _spectrumData.value = fftResult
 
                     // 2. DAS 热力图
-                    val heatmap = DasCalculator.computeHeatmap(chunkData)
+                    val heatmap = DasCalculatorTurbo.computeHeatmap(chunkData)
                     _heatmapData.value = heatmap
 
                     // 3. 计算 FPS

@@ -13,6 +13,10 @@ import kotlin.math.sin
 
 object AudioRepository {
 
+    /**
+     * 生成静止的仿真数据 （弃用）
+     * @return AudioData
+     */
     // 参数：simulatedSourcePos 是我们模拟的声源位置
     // 默认声源在：右上方 (0.5m, 0.5m)，距离阵列 1米处 (Z=1.0)
     fun generateSimulationData(
@@ -66,7 +70,7 @@ object AudioRepository {
     }
 
     /**
-     * 新增：生成连续的仿真数据流
+     * 生成连续的仿真数据流
      * @return Flow<AudioData> 每隔一定时间吐出一个数据包
      */
     fun simulateContinuousData(): Flow<AudioData> = flow {
@@ -128,7 +132,7 @@ object AudioRepository {
             // 模拟真实的采样时间间隔
             // 如果不加 delay，生成数据的速度（微秒级）远远快于 DAS 计算的速度（毫秒级），内存会积压。
             // 4096点 / 44100Hz ≈ 92ms
-            delay(1)
+            delay(90)
         }
     }
 }
