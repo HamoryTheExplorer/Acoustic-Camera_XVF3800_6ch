@@ -34,6 +34,7 @@ import com.example.acousticcamera.data.GridConfig
 @Composable
 fun HeatmapView(
     heatmapData: FloatArray,
+    fpsText: String = "", // fps参数，默认为空
     modifier: Modifier = Modifier
 ) {
     // 找出 dB 范围
@@ -162,6 +163,19 @@ fun HeatmapView(
                 text = infoText,
                 style = TextStyle(color = Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold),
                 topLeft = Offset(10f, 30f) // 放在 "Scan Plane" 文字下面
+            )
+
+            // --- 绘制 FPS --- 右上角
+            drawText(
+                textMeasurer = textMeasurer,
+                text = fpsText,
+                style = TextStyle(
+                    color = Color.Cyan, // 用青色，显眼
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    background = Color.Black.copy(alpha = 0.6f) // 加黑底背景
+                ),
+                topLeft = Offset(size.width - 80.dp.toPx(), 10f) // 靠右上
             )
         }
     }

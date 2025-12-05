@@ -103,6 +103,7 @@ object AudioRepository {
 
                 for (i in 0 until chunkSize) {
                     // 这里的 t 必须加上 globalSampleIndex，否则每块的波形都会从 0 开始，导致相位断裂
+                    // globalSampleIndex 确保了正弦波在切片之间是连贯的。
                     val currentGlobalIndex = globalSampleIndex + i
                     val t = currentGlobalIndex.toDouble() / sampleRate
 
@@ -125,9 +126,9 @@ object AudioRepository {
             globalSampleIndex += chunkSize
 
             // 模拟真实的采样时间间隔
-            // 如果不加 delay，循环会跑得飞快，瞬间算出几万帧数据，卡死 UI
+            // 如果不加 delay，生成数据的速度（微秒级）远远快于 DAS 计算的速度（毫秒级），内存会积压。
             // 4096点 / 44100Hz ≈ 92ms
-            delay(90)
+            delay(1)
         }
     }
 }

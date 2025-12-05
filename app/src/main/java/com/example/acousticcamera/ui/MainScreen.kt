@@ -48,6 +48,8 @@ fun MainScreen(
     val status by viewModel.statusText.collectAsState()
     val spectrum by viewModel.spectrumData.collectAsState()
     val heatmapData by viewModel.heatmapData.collectAsState()
+    val isRunning by viewModel.isRunning.collectAsState() // 获取运行状态
+    val fps by viewModel.fps.collectAsState() // 获取 FPS
 
     var isHeatmapVisible by remember { mutableStateOf(false) }
 
@@ -110,7 +112,9 @@ fun MainScreen(
                 // --- A. 频谱图 ---
                 Text(
                     "频谱图 (Spectrum)",
-                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, bottom = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, bottom = 8.dp),
                     style = MaterialTheme.typography.titleMedium
                 )
 
@@ -124,16 +128,19 @@ fun MainScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // --- B. 热力图区域 ---
+                // --- B. 热力图 ---
                 if (isHeatmapVisible && heatmapData != null) {
                     Text(
                         "声压热力图 (Beamforming)",
-                        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, bottom = 8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, bottom = 8.dp),
                         style = MaterialTheme.typography.titleMedium
                     )
 
                     HeatmapView(
                         heatmapData = heatmapData!!,
+                        fpsText = fps,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
@@ -166,7 +173,9 @@ fun MainScreen(
                     val isBtnEnabled = heatmapData != null
                     Button(
                         onClick = { isHeatmapVisible = !isHeatmapVisible },
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
                         enabled = isBtnEnabled
                     ) {
                         Text(if (isHeatmapVisible) "隐藏声压热力图" else "显示声压热力图")
@@ -184,19 +193,37 @@ fun MainScreen(
                                 viewModel.resetAnalysis()
                                 isHeatmapVisible = false
                             },
-                            modifier = Modifier.weight(1f).height(56.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp)
                         ) {
                             Text("重置")
                         }
 
+                        // [修改] 动态改变按钮文字和点击事件
                         Button(
                             onClick = {
-                                isHeatmapVisible = false
-                                viewModel.runAnalysis()
+                                if (isRunning) {
+                                    viewModel.stopAnalysis()
+                                } else {
+                                    // 开始时自动展开热力图，体验更好
+                                    isHeatmapVisible = true
+                                    viewModel.startRealTimeAnalysis()
+                                }
                             },
-                            modifier = Modifier.weight(1f).height(56.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            // 运行时把按钮变成红色，提示用户可以停止
+                            colors = if (isRunning) {
+                                androidx.compose.material3.ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFB00020) // 红色
+                                )
+                            } else {
+                                androidx.compose.material3.ButtonDefaults.buttonColors() // 默认蓝
+                            }
                         ) {
-                            Text("运行分析")
+                            Text(if (isRunning) "停止分析" else "实时分析")
                         }
                     }
 
