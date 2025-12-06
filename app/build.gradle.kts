@@ -22,11 +22,18 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = false   // removes unused Java/Kotlin bytecode
+            isShrinkResources = false // remove unused resources
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        create("benchmark") {
+            initWith(buildTypes.getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
         }
     }
     compileOptions {
@@ -59,16 +66,11 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    // 1. 用于 MVVM 架构
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    // 2. 数学库 (FFT计算) - 推荐 JTransforms 或者 KMath
-    // 这是一个 Java 库，但在 Kotlin 里也能完美使用，用于频谱分析
-    implementation(libs.jtransforms)
-
-    // 3. 协程 (通常默认有，确认一下)
-    implementation(libs.kotlinx.coroutines.android)
-
+    implementation(libs.androidx.lifecycle.viewmodel.compose) // MVVM 架构
+    implementation(libs.jtransforms)                    // 2. 数学库 (FFT计算)
+    implementation(libs.kotlinx.coroutines.android)     // 3. 协程
     // 4. (可选) 如果你需要读取 CSV 比较方便，可以加一个 CSV 解析库
-    // 或者直接用 Kotlin 标准库读文本也没问题
+
+    implementation("androidx.profileinstaller:profileinstaller:1.4.1") // ProfileInstaller
 }

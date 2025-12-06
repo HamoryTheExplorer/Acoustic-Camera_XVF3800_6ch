@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Acoustic Camera"
 include(":app")
- 
+include(":macrobenchmark")

@@ -14,62 +14,6 @@ import kotlin.math.sin
 object AudioRepository {
 
     /**
-     * 生成静止的仿真数据 （弃用）
-     * @return AudioData
-     */
-    // 参数：simulatedSourcePos 是我们模拟的声源位置
-    // 默认声源在：右上方 (0.5m, 0.5m)，距离阵列 1米处 (Z=1.0)
-    fun generateSimulationData(
-        simulatedSourcePos: Point3D = Point3D(0.5f, 0.5f, 1.0f)
-    ): AudioData {
-        val sampleRate = 44100
-        val durationSeconds = 0.1 // 0.1秒足够分析了，计算也快
-        val numSamples = (sampleRate * durationSeconds).toInt()
-
-        // 引用我们定义的麦克风阵列
-        val mics = MicArrayConfig.mics
-        val channelDataList = ArrayList<FloatArray>()
-
-        val speedOfSound = 340.0 // 声速 m/s
-        val frequency = 4000.0   // 频率 4000Hz
-
-        // 对每个麦克风进行循环
-        for (mic in mics) {
-            val samples = FloatArray(numSamples)
-
-            // 1. 计算 声源 到 当前麦克风 的距离
-            val dist = MicArrayConfig.distance(mic, simulatedSourcePos)
-
-            // 2. 计算传播时间 (延迟) = 距离 / 声速
-            val delaySeconds = dist / speedOfSound
-
-            for (i in 0 until numSamples) {
-                // 当前时刻 t
-                val t = i.toDouble() / sampleRate
-
-                // 3. 核心物理公式：sin( 2πf * (t - delay) )
-                // 这里的 (t - delaySeconds) 就是相移的关键！
-                val timeWithDelay = t - delaySeconds
-
-                // 白噪声 (模拟底噪)
-                val noise = (Math.random() - 0.5) * 0.005
-
-                // 生成信号
-                val signal = sin(2 * PI * frequency * timeWithDelay) + noise
-
-                samples[i] = signal.toFloat()
-            }
-            channelDataList.add(samples)
-        }
-
-        return AudioData(
-            sampleRate = sampleRate,
-            channels = mics.size,
-            data = channelDataList
-        )
-    }
-
-    /**
      * 生成连续的仿真数据流
      * @return Flow<AudioData> 每隔一定时间吐出一个数据包
      */
@@ -129,10 +73,9 @@ object AudioRepository {
             // --- 4. 更新状态与流控 ---
             globalSampleIndex += chunkSize
 
-            // 模拟真实的采样时间间隔
-            // 如果不加 delay，生成数据的速度（微秒级）远远快于 DAS 计算的速度（毫秒级），内存会积压。
+            // 采样时间间隔(根据实际参数调整)
             // 4096点 / 44100Hz ≈ 92ms
-            delay(90)
+            delay(10)
         }
     }
 }

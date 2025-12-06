@@ -4,7 +4,10 @@ import com.example.acousticcamera.data.AudioData
 import com.example.acousticcamera.data.GridConfig
 import com.example.acousticcamera.data.MicArrayConfig
 import com.example.acousticcamera.data.Point3D
-import kotlinx.coroutines.Dispatchers
+import android.os.Process
+import java.util.concurrent.Executors
+import java.util.concurrent.ThreadFactory
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
@@ -12,7 +15,27 @@ import org.jtransforms.fft.FloatFFT_1D
 import kotlin.math.*
 
 /**
- * 极速版频域 DAS (Frequency Domain DAS Turbo) 实现
+ * 创建一个高线程优先级的 Dispatcher
+ * 安卓16系统性能优化
+ */
+val HighPriorityDispatcher = Executors.newFixedThreadPool(
+    Runtime.getRuntime().availableProcessors(), // 线程数 = CPU核心数
+    object : ThreadFactory {
+        override fun newThread(r: Runnable): Thread {
+            val t = Thread {
+                // 关键点：设置线程优先级为 "URGENT_AUDIO" (-19) 或 "DISPLAY" (-4)
+                // 这会告诉 Linux 调度器把这个线程放到大核上
+                Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
+                r.run()
+            }
+            t.name = "Das-Compute-Thread"
+            return t
+        }
+    }
+).asCoroutineDispatcher()
+
+/**
+ * 频域 DAS (Frequency Domain DAS Turbo) 实现
  *
  * 核心原理：
  * 1. CSM (Cross Spectral Matrix)：概念上基于互谱矩阵，但在单快拍(Single Snapshot)情况下，
@@ -73,7 +96,7 @@ object DasCalculatorTurbo {
      * 核心计算函数
      * 使用 suspend 挂起函数，配合 Dispatchers.Default 利用 CPU 多核并行
      */
-    suspend fun computeHeatmap(audioData: AudioData): FloatArray = withContext(Dispatchers.Default) {
+    suspend fun computeHeatmap(audioData: AudioData): FloatArray = withContext(HighPriorityDispatcher) {
         // 确保几何表已初始化
         initGeometryTableIfNeeded()
         val distTable = distDiffTable!!
