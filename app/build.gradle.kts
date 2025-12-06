@@ -22,8 +22,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false   // removes unused Java/Kotlin bytecode
-            isShrinkResources = false // remove unused resources
+            isMinifyEnabled = true   // removes unused Java/Kotlin bytecode
+            isShrinkResources = true // remove unused resources
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

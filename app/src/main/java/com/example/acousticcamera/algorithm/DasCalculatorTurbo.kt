@@ -16,7 +16,7 @@ import kotlin.math.*
 
 /**
  * 创建一个高线程优先级的 Dispatcher
- * 安卓16系统性能优化
+ * 安卓系统性能优化
  */
 val HighPriorityDispatcher = Executors.newFixedThreadPool(
     Runtime.getRuntime().availableProcessors(), // 线程数 = CPU核心数
