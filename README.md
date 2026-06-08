@@ -59,7 +59,7 @@ XVF3800 USB 6ch PCM (48kHz/16bit)
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/YOUR_USERNAME/Acoustic-Camera.git
+git clone https://github.com/HamoryTheExplorer/Acoustic-Camera.git
 cd Acoustic-Camera
 
 # 2. 复制环境配置模板并填写实际路径
@@ -195,7 +195,7 @@ Acoustic-Camera/
 
 ## 🤝 贡献指南
 
-本项目目前为个人研究项目，欢迎 Issue 和 PR。
+本项目目前为个人研究项目，欢迎 Issue 和 PR。如有疑问或建议，请先开 Issue 讨论。
 
 1. Fork 本仓库
 2. 创建特性分支：`git checkout -b feature/amazing-feature`
@@ -205,12 +205,20 @@ Acoustic-Camera/
 
 提交信息请遵循 [Conventional Commits](https://www.conventionalcommits.org/) 规范。
 
+### 贡献者
+
+感谢所有为本项目做出贡献的开发者：
+
+- [@HamoryTheExplorer](https://github.com/HamoryTheExplorer) — 项目发起者 & 主要维护者
+
+> 欢迎通过 PR 将自己的名字添加到贡献者列表中。
+
 ## 📄 License
 
 本项目基于 [Apache License 2.0](LICENSE) 开源协议发布。
 
-Copyright 2025 Acoustic Camera Contributors
+Copyright 2026 [@HamoryTheExplorer](https://github.com/HamoryTheExplorer)
 
 ---
 
-*README 最后更新: 2025-06*
+*README 最后更新: 2026.06*
