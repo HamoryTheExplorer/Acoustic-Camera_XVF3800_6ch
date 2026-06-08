@@ -1,0 +1,50 @@
+# Gradle files
+.gradle/
+build/
+app/release/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log/OS Files
+*.log
+
+# Android Studio generated files and folders
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+output.json
+
+# IntelliJ
+*.iml
+.idea/
+misc.xml
+deploymentTargetDropDown.xml
+render.experimental.xml
+
+# Keystore files
+*.jks
+*.keystore
+signing.properties
+
+# Google Services (e.g. APIs or Firebase)
+google-services.json
+
+# APK / AAB
+*.apk
+*.aab
+
+# Android Profiling
+*.hprof
+
+# Native build artifacts (should be in build/ but just in case)
+*.o
+*.a
+
+# XVF3800 firmware binaries (large, not part of source)
+app/respeaker_xvf3800_usb_dfu_firmware_*.bin
+
+# Claude private config
+.claude/private*
+.claude/settings.local.json

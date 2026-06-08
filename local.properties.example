@@ -1,0 +1,18 @@
+## 复制此文件为 local.properties 并填写实际值
+## cp local.properties.example local.properties
+##
+## 此文件仅包含键名（值留空或填占位符），实际值放入 local.properties。
+## local.properties 已默认在 .gitignore 中，不会进入版本控制。
+
+# Android SDK 路径（Windows 示例: C\:\\Users\\YourName\\AppData\\Local\\Android\\Sdk）
+# macOS 示例: /Users/YourName/Library/Android/sdk
+sdk.dir=
+
+# Android NDK 路径（如果不使用 Gradle 自动下载的 NDK）
+# ndk.dir=
+
+# 如需自定义签名配置或 API 密钥，在此添加
+# STORE_PASSWORD=your_keystore_password
+# KEY_PASSWORD=your_key_password
+# API_KEY=your_api_key_here
+# BASE_URL=https://your-server.com

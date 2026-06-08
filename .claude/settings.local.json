@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew assembleDebug)",
+      "Bash(./gradlew :app:compileDebugKotlin)",
+      "Read(//c/Program Files/Android/Android Studio/**)",
+      "Read(//c/Program Files/**)",
+      "Bash(git checkout *)",
+      "Bash(where.exe java *)",
+      "Read(//c/AWorkEnv/Android/Studio/jbr/bin/**)",
+      "WebSearch",
+      "WebFetch(domain:source.android.com)",
+      "WebFetch(domain:stackoverflow.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(Select-String -Pattern \"\\\\.jks$|\\\\.keystore$|google-services\\\\.json|local\\\\.properties|signing\\\\.properties|\\\\.hprof$|\\\\.log$\")",
+      "PowerShell(git rev-list --all | ForEach-Object { $files = git diff-tree --no-commit-id --name-only -r $_ 2>$null; if \\($files -match '\\\\.\\(jks|keystore\\)$|google-services\\\\.json|local\\\\.properties|signing\\\\.properties'\\) { Write-Output \"Commit: $_\"; Write-Output $files } })",
+      "PowerShell(git branch *)",
+      "PowerShell(git push *)"
+    ]
+  }
+}
